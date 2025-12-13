@@ -6,191 +6,62 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ---------- 1. 部署并缓存 NDK ----------
-  setup-ndk:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      ndk-path: ${{ steps.set-ndk-path.outputs.ndk_path }}
-      toolchain-path: ${{ steps.set-ndk-path.outputs.toolchain_path }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: 缓存 NDK
-        id: cache-ndk
+      # ---------- 1. NDK 缓存 ----------
+      - id: cache-ndk
         uses: actions/cache@v4
         with:
           path: ${{ runner.tool_cache }}/android-ndk-r27b
           key: ndk-r27b-linux
 
-      - name: 下载 NDK (如果缓存未命中)
-        if: steps.cache-ndk.outputs.cache-hit != 'true'
+      - if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
-          echo "下载 NDK r27b..."
           wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
-          echo "解压 NDK..."
           unzip -q android-ndk-r27b-linux.zip -d "$RUNNER_TOOL_CACHE"
           rm -f android-ndk-r27b-linux.zip
-          echo "NDK 安装完成"
 
-      - name: 设置 NDK 路径并验证
-        id: set-ndk-path
+      # ---------- 2. 导出变量 ----------
+      - name: Export cross-compile env
         run: |
           NDK_PATH="$RUNNER_TOOL_CACHE/android-ndk-r27b"
-          TOOLCHAIN_PATH="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64"
-          
-          # 验证文件存在
-          echo "验证 NDK 文件..."
-          if [ ! -f "$TOOLCHAIN_PATH/bin/aarch64-linux-android35-clang" ]; then
-            echo "错误: 找不到交叉编译器!"
-            echo "目录内容:"
-            ls "$TOOLCHAIN_PATH/bin/" | grep -i clang | head -10
-            exit 1
-          fi
-          
-          echo "NDK 验证成功"
-          echo "编译器路径: $TOOLCHAIN_PATH/bin/aarch64-linux-android35-clang"
-          
-          # 设置输出变量供其他作业使用
-          echo "ndk_path=$NDK_PATH" >> $GITHUB_OUTPUT
-          echo "toolchain_path=$TOOLCHAIN_PATH" >> $GITHUB_OUTPUT
+          TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
+          echo "NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
+          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
+          echo "CC=$TOOLCHAIN/bin/aarch64-linux-android35-clang"     >> $GITHUB_ENV
+          echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android35-clang++"  >> $GITHUB_ENV
+          echo "CPP=$TOOLCHAIN/bin/aarch64-linux-android35-clang -E" >> $GITHUB_ENV
+          echo "LD=$TOOLCHAIN/bin/ld"                                >> $GITHUB_ENV
+          echo "AR=$TOOLCHAIN/bin/llvm-ar"                           >> $GITHUB_ENV
+          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"                   >> $GITHUB_ENV
+          echo "CFLAGS=-fPIE -fPIC"                                  >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$PWD/data/web/Nginx/lib/pkgconfig"   >> $GITHUB_ENV
 
-  # ---------- 2. 编译 nginx ----------
-  build:
-    needs: setup-ndk
-    runs-on: ubuntu-latest
-    env:
-      API_LEVEL: 35
-    
-    steps:
-      - uses: actions/checkout@v4
+      # ---------- 3. 其余步骤 ----------
+      - name: Extract depend
+        run: tar -xf depend.tar.gz
 
-      - name: 验证 NDK 环境
+      - name: Configure
         run: |
-          echo "从 setup-ndk 作业获取的路径:"
-          echo "NDK 路径: ${{ needs.setup-ndk.outputs.ndk-path }}"
-          echo "工具链路径: ${{ needs.setup-ndk.outputs.toolchain-path }}"
-          
-          # 直接验证编译器是否存在
-          COMPILER="${{ needs.setup-ndk.outputs.toolchain-path }}/bin/aarch64-linux-android${{ env.API_LEVEL }}-clang"
-          echo "编译器完整路径: $COMPILER"
-          
-          if [ -f "$COMPILER" ]; then
-            echo "✓ 找到交叉编译器"
-            echo "编译器版本:"
-            $COMPILER --version | head -3
-          else
-            echo "✗ 编译器不存在"
-            echo "目录内容:"
-            ls "${{ needs.setup-ndk.outputs.toolchain-path }}/bin/" | grep -i clang | head -10
-            exit 1
-          fi
-
-      - name: 设置交叉编译环境变量
-        run: |
-          TOOLCHAIN="${{ needs.setup-ndk.outputs.toolchain-path }}"
-          
-          # 设置主要环境变量
-          echo "CC=$TOOLCHAIN/bin/aarch64-linux-android${{ env.API_LEVEL }}-clang" >> $GITHUB_ENV
-          echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android${{ env.API_LEVEL }}-clang++" >> $GITHUB_ENV
-          echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
-          echo "LD=$TOOLCHAIN/bin/ld" >> $GITHUB_ENV
-          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
-          echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
-          
-          # 设置编译标志
-          echo "CFLAGS=-fPIE -fPIC -D__ANDROID_API__=${{ env.API_LEVEL }}" >> $GITHUB_ENV
-          echo "LDFLAGS=-pie" >> $GITHUB_ENV
-          
-          # 设置系统变量
-          echo "ANDROID_NDK_HOME=${{ needs.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          echo "SYSROOT=$TOOLCHAIN/sysroot" >> $GITHUB_ENV
-          
-          echo "交叉编译环境已设置"
-
-      - name: 检查环境变量
-        run: |
-          echo "=== 环境变量检查 ==="
-          echo "CC: $CC"
-          echo "CXX: $CXX"
-          echo "AR: $AR"
-          echo "CFLAGS: $CFLAGS"
-          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
-          echo "SYSROOT: $SYSROOT"
-          
-          # 验证编译器可执行
-          echo -e "\n=== 编译器验证 ==="
-          $CC --version | head -3
-          which $(basename $CC)
-
-      - name: 解压依赖
-        run: |
-          echo "解压依赖文件..."
-          if [ -f "depend.tar.gz" ]; then
-            tar -xzf depend.tar.gz
-            echo "依赖解压完成"
-          else
-            echo "警告: 找不到 depend.tar.gz 文件"
-          fi
-
-      - name: 配置 Nginx
-        run: |
-          echo "配置 Nginx 进行交叉编译..."
           chmod +x Configuration.nginx
-          
-          # 如果有额外的配置参数可以在这里添加
           ./Configuration.nginx
-          
-          # 验证生成的 Makefile
-          if [ -f "Makefile" ]; then
-            echo "✓ Makefile 生成成功"
-            echo "前几行内容:"
-            head -20 Makefile
-          else
-            echo "✗ Makefile 生成失败"
-            exit 1
-          fi
 
-      - name: 编译 Nginx
-        run: |
-          echo "开始编译..."
-          make -j$(nproc)
-          
-          # 验证编译结果
-          if [ -f "data/web/Nginx/nginx" ]; then
-            echo "✓ Nginx 编译成功"
-            file data/web/Nginx/nginx
-          else
-            echo "✗ 编译失败，未找到可执行文件"
-            exit 1
-          fi
+      - name: Build
+        run: make -j$(nproc)
 
-      - name: 安装到临时目录
-        run: |
-          echo "安装到临时目录..."
-          mkdir -p install
-          make install DESTDIR=$PWD/install
-          
-          echo "安装完成，目录结构:"
-          find install -type f -name "nginx" | xargs file
+      - name: Install
+        run: make install DESTDIR=$PWD/install
 
-      - name: 打包
+      - name: Pack
         run: |
-          echo "打包生成的文件..."
           cd install/data/web
           tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
-          
-          echo "打包完成，文件信息:"
-          ls -lh ../../../../nginx-android-aarch64.tar.xz
 
-      - name: 上传制品
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nginx-android-aarch64
           path: nginx-android-aarch64.tar.xz
-          retention-days: 7
-
-      - name: 清理
-        if: always()
-        run: |
-          echo "清理临时文件..."
-          rm -rf install depend
