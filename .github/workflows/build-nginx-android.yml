@@ -12,20 +12,14 @@ jobs:
       # ---------- 1. 源码 ----------
       - uses: actions/checkout@v4
 
-      # ---------- 2. NDK ----------
-      - name: Cache NDK
-        id: cache-ndk
-        uses: actions/cache@v4
-        with:
-          path: android-ndk-r27b
-          key: ndk-r27b-linux
-
-      - if: steps.cache-ndk.outputs.cache-hit != 'true'
+      # ---------- 2. NDK （每次重新下载，确保 toolchain 存在） ----------
+      - name: Download & unpack NDK
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
-          unzip -q android-ndk-r27b-linux.zip && rm -f android-ndk-r27b-linux.zip
+          unzip -q android-ndk-r27b-linux.zip
+          rm -f android-ndk-r27b-linux.zip
 
-      # ---------- 3. 依赖包（解压到当前工作区，避免 sudo 权限黑洞） ----------
+      # ---------- 3. 依赖包（解压到当前工作区） ----------
       - name: Extract depend
         run: tar -xf depend.tar.gz
 
@@ -33,12 +27,11 @@ jobs:
       - name: Export cross-compile env
         run: |
           NDK=$PWD/android-ndk-r27b
-          ls 
           TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          ls
           echo "NDK=$NDK" >> $GITHUB_ENV
           echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
           echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
-          # 关键变量
           echo "CC=$TOOLCHAIN/bin/aarch64-linux-android35-clang"     >> $GITHUB_ENV
           echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android35-clang++"  >> $GITHUB_ENV
           echo "CPP=$TOOLCHAIN/bin/aarch64-linux-android35-clang -E" >> $GITHUB_ENV
@@ -68,9 +61,10 @@ jobs:
           cd install/data/web
           tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
 
-      # ---------- 9. 上传 ----------
+      # ---------- 9. 上传 artifact ----------
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nginx-android-aarch64
           path: nginx-android-aarch64.tar.xz
+          retention-days: 7
