@@ -1,70 +1,57 @@
-name: Build nginx for Android (aarch64)
+name: Setup NDK r27b
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [main]
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  build:
+  setup-ndk:
     runs-on: ubuntu-latest
+    
     steps:
-      # ---------- 1. 源码 ----------
-      - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      # ---------- 2. NDK （每次重新下载，确保 toolchain 存在） ----------
-      - name: Download & unpack NDK
-        run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
-          unzip -q android-ndk-r27b-linux.zip
-          rm -f android-ndk-r27b-linux.zip
+    - name: Download and setup NDK r27b
+      run: |
+        # 1. 下载 NDK
+        wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
+        
+        # 2. 解压
+        unzip -q android-ndk-r27b-linux.zip -d $RUNNER_TOOL_CACHE
+        
+        # 3. 设置环境变量
+        NDK_PATH="$RUNNER_TOOL_CACHE/android-ndk-r27b"
+        echo "NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
+        echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+        
+        # 4. 添加到 PATH
+        echo "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
-      # ---------- 3. 依赖包（解压到当前工作区） ----------
-      - name: Extract depend
-        run: tar -xf depend.tar.gz
-
-      # ---------- 4. 一次性导出所有交叉编译环境变量 ----------
-      - name: Export cross-compile env
-        run: |
-          NDK=$PWD/android-ndk-r27b
-          TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
-          ls
-          echo "NDK=$NDK" >> $GITHUB_ENV
-          echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
-          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
-          echo "CC=$TOOLCHAIN/bin/aarch64-linux-android35-clang"     >> $GITHUB_ENV
-          echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android35-clang++"  >> $GITHUB_ENV
-          echo "CPP=$TOOLCHAIN/bin/aarch64-linux-android35-clang -E" >> $GITHUB_ENV
-          echo "LD=$TOOLCHAIN/bin/ld"                                >> $GITHUB_ENV
-          echo "AR=$TOOLCHAIN/bin/llvm-ar"                           >> $GITHUB_ENV
-          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"                   >> $GITHUB_ENV
-          echo "CFLAGS=-fPIE -fPIC"                                  >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$PWD/data/web/Nginx/lib/pkgconfig"   >> $GITHUB_ENV
-
-      # ---------- 5. configure ----------
-      - name: Configure
-        run: |
-          chmod +x Configuration.nginx
-          ./Configuration.nginx
-
-      # ---------- 6. 编译 ----------
-      - name: Build
-        run: make -j$(nproc)
-
-      # ---------- 7. 安装 ----------
-      - name: Install
-        run: make install DESTDIR=$PWD/install
-
-      # ---------- 8. 打包 ----------
-      - name: Pack
-        run: |
-          cd install/data/web
-          tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
-
-      # ---------- 9. 上传 artifact ----------
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: nginx-android-aarch64
-          path: nginx-android-aarch64.tar.xz
-          retention-days: 7
+    - name: Verify NDK clang versions
+      run: |
+        echo "=== NDK 交叉编译 clang 版本 ==="
+        
+        # 测试不同架构的编译器
+        TOOLS_DIR="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+        
+        # 使用 API level 21（最常用）
+        echo "1. ARM64 (aarch64):"
+        $TOOLS_DIR/aarch64-linux-android21-clang --version | head -1
+        
+        echo -e "\n2. ARM32 (armv7a):"
+        $TOOLS_DIR/armv7a-linux-androideabi21-clang --version | head -1
+        
+        echo -e "\n3. x86_64:"
+        $TOOLS_DIR/x86_64-linux-android21-clang --version | head -1
+        
+        echo -e "\n4. x86 (i686):"
+        $TOOLS_DIR/i686-linux-android21-clang --version | head -1
+        
+        echo -e "\n=== 环境信息 ==="
+        echo "NDK路径: $ANDROID_NDK_HOME"
+        echo "工具链路径: $TOOLS_DIR"
+        
+        echo -e "\n=== 验证 PATH ==="
+        which aarch64-linux-android21-clang
