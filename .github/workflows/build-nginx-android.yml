@@ -9,22 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # ---------- 1. NDK 缓存 ----------
-      - id: cache-ndk
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.tool_cache }}/android-ndk-r27b
-          key: ndk-r27b-linux
-
-      - if: steps.cache-ndk.outputs.cache-hit != 'true'
+      # 1. 下载并部署 NDK（每次重新拉，确保 toolchain 一定存在）
+      - name: Download and setup NDK r27b
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
           unzip -q android-ndk-r27b-linux.zip -d "$RUNNER_TOOL_CACHE"
           rm -f android-ndk-r27b-linux.zip
 
-      # ---------- 2. 导出变量 ----------
+      # 2. 一次性导出全部交叉编译变量
       - name: Export cross-compile env
         run: |
           NDK_PATH="$RUNNER_TOOL_CACHE/android-ndk-r27b"
@@ -40,26 +35,31 @@ jobs:
           echo "CFLAGS=-fPIE -fPIC"                                  >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=$PWD/data/web/Nginx/lib/pkgconfig"   >> $GITHUB_ENV
 
-      # ---------- 3. 其余步骤 ----------
+      # 3. 解压依赖包
       - name: Extract depend
         run: tar -xf depend.tar.gz
 
+      # 4. 生成 Makefile
       - name: Configure
         run: |
           chmod +x Configuration.nginx
           ./Configuration.nginx
 
+      # 5. 编译
       - name: Build
         run: make -j$(nproc)
 
+      # 6. 安装
       - name: Install
         run: make install DESTDIR=$PWD/install
 
+      # 7. 打包
       - name: Pack
         run: |
           cd install/data/web
           tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
 
+      # 8. 上传产物
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
