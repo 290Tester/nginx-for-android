@@ -33,6 +33,7 @@ jobs:
       - name: Export cross-compile env
         run: |
           NDK=$PWD/android-ndk-r27b
+          ls 
           TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           echo "NDK=$NDK" >> $GITHUB_ENV
           echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
