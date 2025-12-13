@@ -11,57 +11,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # 1. 下载并部署 NDK（每次重新拉，确保 toolchain 一定存在）
-      - name: Download and setup NDK r27b
+        
+      - name: set
         run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
-          unzip -q android-ndk-r27b-linux.zip -d "$RUNNER_TOOL_CACHE"
-          rm -f android-ndk-r27b-linux.zip
-
-      # 2. 一次性导出全部交叉编译变量
-      - name: Export cross-compile env
-        run: |
-          NDK_PATH="$RUNNER_TOOL_CACHE/android-ndk-r27b"
-          TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
-          echo "NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
-          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
-          echo "CC=$TOOLCHAIN/bin/aarch64-linux-android35-clang"     >> $GITHUB_ENV
-          echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android35-clang++"  >> $GITHUB_ENV
-          echo "CPP=$TOOLCHAIN/bin/aarch64-linux-android35-clang -E" >> $GITHUB_ENV
-          echo "LD=$TOOLCHAIN/bin/ld"                                >> $GITHUB_ENV
-          echo "AR=$TOOLCHAIN/bin/llvm-ar"                           >> $GITHUB_ENV
-          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"                   >> $GITHUB_ENV
-          echo "CFLAGS=-fPIE -fPIC"                                  >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$PWD/data/web/Nginx/lib/pkgconfig"   >> $GITHUB_ENV
-
-      # 3. 解压依赖包
-      - name: Extract depend
-        run: tar -xf depend.tar.gz
-
-      # 4. 生成 Makefile
-      - name: Configure
-        run: |
-          chmod +x Configuration.nginx
-          ./Configuration.nginx
-
-      # 5. 编译
-      - name: Build
-        run: make -j$(nproc)
-
-      # 6. 安装
-      - name: Install
-        run: make install DESTDIR=$PWD/install
-
-      # 7. 打包
-      - name: Pack
-        run: |
-          cd install/data/web
-          tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
-
-      # 8. 上传产物
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: nginx-android-aarch64
-          path: nginx-android-aarch64.tar.xz
+          ./setenv.sh
