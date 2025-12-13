@@ -27,6 +27,8 @@ tar -xf depend.tar.gz
 # 4. 生成 Makefile ------------------------------------------------------
 echo ">>> Configuring nginx..."
 ls -l $CC
+$CC --version
+
 auto/configure \
 --prefix=/data/web/Nginx \
 --conf-path=/data/web/Nginx/etc \
