@@ -1,0 +1,81 @@
+name: Release nginx for Android (aarch64)
+
+on:
+  push:
+    tags:
+      - 'v*'            # 只要推送 v1.0.0 这种标签就触发
+  workflow_dispatch:    # 也可手动
+
+permissions:
+  contents: write       # 允许创建 Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ---------- 1. 源码 ----------
+      - uses: actions/checkout@v4
+
+      # ---------- 2. NDK （缓存） ----------
+. NDK （缓存） ----------
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: android-ndk-r27b
+          key: ndk-r27b-linux
+
+      - if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
+          unzip -q android-ndk-r27b-linux.zip && rm -f android-ndk-r27b-linux.zip
+
+      # ---------- 3. 依赖包 ----------
+      - name: Extract depend
+        run: sudo tar -xf depend.tar.gz   # /data/web/Nginx
+
+      # ---------- 4. 环境变量 ----------
+      - name: Export vars
+        run: |
+          echo "NDK=$PWD/android-ndk-r27b" >> $GITHUB_ENV
+          echo "$PWD/android-ndk-r27b/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+
+      # ---------- 5. configure ----------
+      - name: Configure
+        run: |
+          source setenv.sh
+          chmod +x Configuration.nginx
+          ./Configuration.nginx
+
+      # ---------- 6. 编译 ----------
+      - name: Build
+        run: |
+          source setenv.sh
+          make -j$(nproc)
+
+      # ---------- 7. 安装 ----------
+      - name: Install
+        run: |
+          source setenv.sh
+          make install DESTDIR=$PWD/install
+
+      # ---------- 8. 打包 ----------
+      - name: Pack
+        run: |
+          cd install/data/web
+          tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
+          cd ../../../../
+          echo "ASSET=nginx-android-aarch64.tar.xz" >> $GITHUB_ENV
+
+      # ---------- 9. 创建 Release + 上传资产 ----------
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "nginx ${{ github.ref_name }} — Android aarch64"
+          body: |
+            交叉编译 NDK r27b + OpenSSL + PCRE + zlib  
+            安装前缀 `/data/web/Nginx`，开箱即用。
+          files: ${{ env.ASSET }}
+          draft: false
+          prerelease: false
