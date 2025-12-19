@@ -72,6 +72,7 @@ $CC --version
 --with-poll_module \
 --with-select_module
 echo ">>> Building..."
+cat objs/autoconf.err
 make -j$(nproc)
 echo ">>> Installing..."
 make -j3 install 
