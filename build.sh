@@ -73,10 +73,8 @@ auto/configure \
 echo ">>> Building..."
 make -j$(nproc)
 echo ">>> Installing..."
-make install DESTDIR="$PWD/install"
+make -j3 install 
 echo ">>> Packing..."
-cd install/data/web
-tar -cJf ../../../../nginx-android-aarch64.tar.xz Nginx/
-cd ../../../
-
+tar -C /data/web -cJf ~/nginx-android-aarch64.tar.xz Nginx
+cd -
 echo ">>> Done: nginx-android-aarch64.tar.xz"
