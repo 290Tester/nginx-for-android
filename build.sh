@@ -11,6 +11,7 @@ TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
 export CC=$TOOLCHAIN/bin/aarch64-linux-android34-clang
 export CXX=$TOOLCHAIN/bin/aarch64-linux-android34-clang++
 export CPP="$CC -E"
+export cross_compiling=yes
 export LD=$TOOLCHAIN/bin/ld
 export AR=$TOOLCHAIN/bin/llvm-ar
 export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
