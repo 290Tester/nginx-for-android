@@ -25,52 +25,8 @@ echo ">>> Configuring nginx..."
 cd "nginx-1.29.4"
 ls -l $CC
 $CC --version
-./configure \
---prefix=/data/web/Nginx \
---conf-path=/data/web/Nginx/etc/nginx.conf \
---error-log-path=/data/web/Nginx/var/error.log \
---http-log-path=/data/web/Nginx/var/log.log \
---pid-path=/data/web/Nginx/var/nginx.pid \
---lock-path=/data/web/Nginx/var/nginx.lock \
---http-client-body-temp-path=/data/web/Nginx/var/client_body_temp \
---http-proxy-temp-path=/data/web/Nginx/var/proxy_temp \
---http-fastcgi-temp-path=/data/web/Nginx/var/fastcgi_temp \
---http-uwsgi-temp-path=/data/web/Nginx/var/uwsgi_temp \
---http-scgi-temp-path=/data/web/Nginx/var/scgi_temp \
---with-pcre=/data/web/Nginx \
---with-openssl=/data/web/Nginx \
---with-zlib=/data/web/Nginx \
---with-pcre-opt=--host=aarch64-linux-android \
---with-cc=$CC \
---with-cc-opt='-I/data/web/Nginx/include -D__USE_GNU -Os -flto ' \
---with-ld-opt='-L/data/web/Nginx/lib -lz /data/web/Nginx/.libs/libpcre.a /data/web/Nginx/.openssl/lib/libssl.a /data/web/Nginx/.openssl/lib/libcrypto.a -Wl,-rpath,/data/web/Nginx/lib:/data/web/Nginx/lib64 -lz /data/web/Nginx/.libs/libpcre.a /data/web/Nginx/.openssl/lib/libssl.a /data/web/Nginx/.openssl/lib/libcrypto.a -Wl,--gc-sections -flto' \
---with-http_ssl_module \
---with-stream_ssl_module \
---with-http_v2_module \
---with-http_v3_module \
---with-http_gzip_static_module \
---with-http_stub_status_module \
---with-http_realip_module \
---with-http_sub_module \
---with-http_secure_link_module \
---with-http_dav_module \
---with-http_addition_module \
---with-stream \
---with-http_auth_request_module \
---with-http_slice_module \
---with-http_flv_module \
---with-http_mp4_module \
---with-http_gunzip_module \
---with-http_random_index_module \
---with-http_degradation_module \
---with-stream_realip_module \
---with-stream_ssl_preread_module \
---with-file-aio \
---with-threads \
---with-compat \
---with-debug \
---with-poll_module \
---with-select_module
+wget "https://github.com/290Tester/nginx-for-android/releases/download/v1.29.4/nginx-1.29.4-Makefile.tar.gz"
+tar xf nginx-1.29.4-Makefile.tar.gz
 echo ">>> Building..."
 cat objs/autoconf.err
 make -j$(nproc)
