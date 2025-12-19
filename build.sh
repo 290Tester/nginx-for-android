@@ -8,8 +8,8 @@ rm -f android-ndk-r27b-linux.zip
 export NDK_ROOT="$PWD/android-ndk-r27b"
 export PATH="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
 TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
-export CC=$TOOLCHAIN/bin/aarch64-linux-android35-clang
-export CXX=$TOOLCHAIN/bin/aarch64-linux-android35-clang++
+export CC=$TOOLCHAIN/bin/aarch64-linux-android34-clang
+export CXX=$TOOLCHAIN/bin/aarch64-linux-android34-clang++
 export CPP="$CC -E"
 export LD=$TOOLCHAIN/bin/ld
 export AR=$TOOLCHAIN/bin/llvm-ar
