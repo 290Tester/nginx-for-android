@@ -1,6 +1,8 @@
 #!/bin/bash
 mkdir -p /data/web/Nginx
 cd /data/web/Nginx
+wget "https://github.com/290Tester/nginx-for-android/releases/download/v1.29.4/Build-dep.tar.gz"
+tar -xf "Build-dep.tar.gz"
 echo ">>> Downloading NDK r27b..."
 wget -q https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
 unzip -q android-ndk-r27b-linux.zip
@@ -19,8 +21,6 @@ export CFLAGS="-fPIE -fPIC"
 echo ">>> Extracting..."
 wget "https://github.com/nginx/nginx/releases/download/release-1.29.4/nginx-1.29.4.tar.gz"
 tar -xf "nginx-1.29.4.tar.gz"
-wget "https://github.com/290Tester/nginx-for-android/releases/download/v1.29.4/Build-dep.tar.gz"
-tar -xf "Build-dep.tar.gz"
 echo ">>> Configuring nginx..."
 cd "nginx-1.29.4"
 ls -l $CC
