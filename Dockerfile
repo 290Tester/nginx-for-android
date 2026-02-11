@@ -33,6 +33,7 @@ RUN wget -q http://nginx.org/download/nginx-1.29.5.tar.gz && \
 WORKDIR /data/web/nginx/nginx-1.29.5
 
 RUN ./configure --prefix="/data/web/nginx" \
+--crossbuild=Linux:aarch64 \
 --sbin-path="${ngprefix}/sbin/nginx" \
 --modules-path="${ngprefix}/lib/modules" \
 --conf-path="${ngprefix}/etc/nginx.conf" \
