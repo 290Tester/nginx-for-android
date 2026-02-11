@@ -17,7 +17,7 @@ ENV ngprefix=/data/web/nginx
 
 RUN wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip -O /opt/android-ndk-r29-linux.zip && \
     cd /opt && \
-    7z x android-ndk-r29-linux.zip && \
+    unzip android-ndk-r29-linux.zip && \
     rm -f android-ndk-r29-linux.zip
 
 WORKDIR /data/web/nginx
