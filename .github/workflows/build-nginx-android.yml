@@ -1,24 +1,39 @@
-name: Build nginx for Android (aarch64)
+name: Build Nginx for Android
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run build script
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and extract
         run: |
-          chmod +x build.sh
-          sudo ./build.sh
-
+          docker build --target export -t nginx-export .
+          
+          docker create --name extract nginx-export
+          docker cp extract:/nginx-android-aarch64.tar.gz ./nginx-android-aarch64.tar.gz
+          docker rm extract
+          
+          ls -lh ./nginx-android-aarch64.tar.gz
+          tar tzf ./nginx-android-aarch64.tar.gz | head -20
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nginx-android-aarch64
-          path: nginx-android-aarch64.tar.xz
-          retention-days: 7
+          path: ./nginx-android-aarch64.tar.gz
+          retention-days: 30
+      
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: nginx-android-aarch64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
