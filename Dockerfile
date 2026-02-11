@@ -1,7 +1,7 @@
 FROM debian:13 AS builder
 
 RUN apt update && apt install -y \
-    wget curl make cmake git p7zip-full tar gzip
+    wget curl make cmake git p7zip-full tar gzip unzip
 
 ENV NDK_PATH=/opt/android-ndk-r29
 ENV PATH=${NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
@@ -19,7 +19,7 @@ ENV ngprefix=/data/web/nginx
 
 RUN wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip -O /opt/ndk.zip && \
     cd /opt && \
-    7z x ndk.zip && \
+    unzip ndk.zip && \
     rm ndk.zip
 
 WORKDIR /data/web/nginx
