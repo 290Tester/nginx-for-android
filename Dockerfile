@@ -29,16 +29,22 @@ RUN wget -q http://nginx.org/download/nginx-1.29.5.tar.gz && \
     tar xf nginx-1.29.5.tar.gz
 
 WORKDIR /data/web/nginx/nginx-1.29.5
+
 RUN cat > configure.sh << 'EOF'
 #!/usr/bin/env bash
+set -e
 export ngprefix="/data/web/nginx"
-$PWD/configure --prefix="/data/web/nginx" \
---sbin-path="$ngprefix/sbin/nginx" \
---modules-path="$ngprefix/lib/modules" \
---conf-path="$ngprefix/etc/nginx.conf" \
---error-log-path="$ngprefix/var/errors.log" \
---pid-path="$ngprefix/var/nginx.pid" \
---lock-path="$ngprefix/var/lock" \
+
+echo "=== Configuring Nginx ==="
+echo "CC=${CC}"
+
+${PWD}/configure --prefix="/data/web/nginx" \
+--sbin-path="${ngprefix}/sbin/nginx" \
+--modules-path="${ngprefix}/lib/modules" \
+--conf-path="${ngprefix}/etc/nginx.conf" \
+--error-log-path="${ngprefix}/var/errors.log" \
+--pid-path="${ngprefix}/var/nginx.pid" \
+--lock-path="${ngprefix}/var/lock" \
 --build="Builder: Segmentation fault" \
 --with-select_module \
 --with-poll_module \
@@ -58,19 +64,19 @@ $PWD/configure --prefix="/data/web/nginx" \
 --with-http_random_index_module \
 --with-http_secure_link_module \
 --with-http_slice_module \
---http-log-path="$ngprefix/var/access.log" \
---http-client-body-temp-path="$ngprefix/var/up" \
---http-proxy-temp-path="$ngprefix/var/proxy" \
---http-fastcgi-temp-path="$ngprefix/var/proxy-fast" \
---http-uwsgi-temp-path="$ngprefix/var/proxy-uwsgi" \
---http-scgi-temp-path="$ngprefix/var/proxy-scgi" \
+--http-log-path="${ngprefix}/var/access.log" \
+--http-client-body-temp-path="${ngprefix}/var/up" \
+--http-proxy-temp-path="${ngprefix}/var/proxy" \
+--http-fastcgi-temp-path="${ngprefix}/var/proxy-fast" \
+--http-uwsgi-temp-path="${ngprefix}/var/proxy-uwsgi" \
+--http-scgi-temp-path="${ngprefix}/var/proxy-scgi" \
 --with-stream \
 --with-stream_ssl_module \
 --with-stream_realip_module \
 --with-stream_ssl_preread_module \
---with-pcre="$ngprefix" \
---with-zlib="$ngprefix" \
---with-openssl="$ngprefix" \
+--with-pcre="${ngprefix}" \
+--with-zlib="${ngprefix}" \
+--with-openssl="${ngprefix}" \
 --with-cc="${CC}" \
 --with-cpp="${CC} -E" \
 --with-cc-opt="-I/data/web/nginx/include -fPIC -fPIE -D__USE_GNU" \
@@ -85,7 +91,6 @@ RUN make -j4 && make install -j4
 RUN cd /data/web/nginx && \
     tar czf /tmp/nginx-android-aarch64.tar.gz \
     sbin/ lib/ etc/ var/ include/ && \
-    echo "=== Build complete ===" && \
     ls -lh /tmp/nginx-android-aarch64.tar.gz
 
 FROM scratch AS export
